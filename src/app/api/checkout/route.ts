@@ -23,7 +23,8 @@ export async function POST(request: Request) {
           }
         ],
         payer: {
-          email: userEmail,
+          // Em sandbox, não usar o email do dono da conta MP para evitar erro 403
+          email: MP_ACCESS_TOKEN.startsWith('TEST-') ? 'comprador_teste@email.com' : userEmail,
         },
         back_urls: {
           success: `${process.env.NEXT_PUBLIC_SITE_URL}/dashboard?payment=success`,
