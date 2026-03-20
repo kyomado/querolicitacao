@@ -1,8 +1,7 @@
 import { NextResponse } from 'next/server';
 import { MercadoPagoConfig, Preference } from 'mercadopago';
 
-// NOTA: Em produção, estas chaves devem vir de variáveis de ambiente (.env)
-const MP_ACCESS_TOKEN = process.env.MP_ACCESS_TOKEN || 'TEST-YOUR-ACCESS-TOKEN';
+const MP_ACCESS_TOKEN = process.env.MERCADO_PAGO_ACCESS_TOKEN || process.env.MP_ACCESS_TOKEN || '';
 
 const client = new MercadoPagoConfig({ accessToken: MP_ACCESS_TOKEN });
 
@@ -16,10 +15,10 @@ export async function POST(request: Request) {
       body: {
         items: [
           {
-            id: planId,
-            title: 'Plano Pro - Quero Licitação',
+            id: planId || 'mensal-30',
+            title: 'Plano Mensal - querolicitacao.com.br',
             quantity: 1,
-            unit_price: 197.00,
+            unit_price: 30.00,
             currency_id: 'BRL',
           }
         ],
@@ -27,9 +26,9 @@ export async function POST(request: Request) {
           email: userEmail,
         },
         back_urls: {
-          success: `${process.env.NEXT_PUBLIC_BASE_URL}/dashboard?payment=success`,
-          failure: `${process.env.NEXT_PUBLIC_BASE_URL}/dashboard?payment=failure`,
-          pending: `${process.env.NEXT_PUBLIC_BASE_URL}/dashboard?payment=pending`,
+          success: `${process.env.NEXT_PUBLIC_SITE_URL}/dashboard?payment=success`,
+          failure: `${process.env.NEXT_PUBLIC_SITE_URL}/dashboard?payment=failure`,
+          pending: `${process.env.NEXT_PUBLIC_SITE_URL}/dashboard?payment=pending`,
         },
         auto_return: 'approved',
         external_reference: userId,
