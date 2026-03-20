@@ -7,6 +7,9 @@ export async function GET(request: Request) {
   const code = searchParams.get('code');
   // if "next" is in search params, use it as the redirection URL
   const next = searchParams.get('next') ?? '/dashboard';
+  // Usar NEXT_PUBLIC_SITE_URL em produção para evitar problema com proxy reverso (Nginx)
+  // que faz o Next.js ver o origin como localhost:3000 em vez do domínio real
+  const siteOrigin = process.env.NEXT_PUBLIC_SITE_URL || origin;
 
   if (code) {
     const cookieStore = await cookies();
@@ -32,10 +35,10 @@ export async function GET(request: Request) {
     );
     const { error } = await supabase.auth.exchangeCodeForSession(code);
     if (!error) {
-      return NextResponse.redirect(`${origin}${next}`);
+      return NextResponse.redirect(`${siteOrigin}${next}`);
     }
   }
 
   // return the user to an error page with instructions
-  return NextResponse.redirect(`${origin}/auth/auth-code-error`);
+  return NextResponse.redirect(`${siteOrigin}/auth/auth-code-error`);
 }
