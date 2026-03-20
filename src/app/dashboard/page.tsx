@@ -243,9 +243,9 @@ export default function DashboardPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          planId: 'silver_plan',
-          userId: 'user_123',
-          userEmail: 'cliente@exemplo.com'
+          planId: 'mensal-30',
+          userId: user?.id || '',
+          userEmail: user?.email || '',
         })
       });
       const data = await resp.json();

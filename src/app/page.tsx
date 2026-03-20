@@ -2,6 +2,8 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { supabase } from '@/lib/supabase';
 import {
   Search, Bell, Shield, TrendingUp, ChevronRight, Menu, X,
   CheckCircle2, MapPin, Filter, Zap, Lock, Globe, ArrowRight, Star
@@ -11,13 +13,26 @@ export default function LandingPage() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [loadingCheckout, setLoadingCheckout] = useState(false);
 
+  const router = useRouter();
+
   const handleCheckout = async () => {
     setLoadingCheckout(true);
     try {
+      // Verifica se está logado
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user) {
+        router.push('/login');
+        return;
+      }
+
       const res = await fetch('/api/checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ planId: 'mensal-30', userId: 'guest', userEmail: '' }),
+        body: JSON.stringify({
+          planId: 'mensal-30',
+          userId: session.user.id,
+          userEmail: session.user.email || '',
+        }),
       });
       const data = await res.json();
       if (data.init_point) {
