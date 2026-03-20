@@ -50,7 +50,9 @@ export default function DashboardPage() {
   const [availableMunicipalities, setAvailableMunicipalities] = useState<string[]>([]);
   const [munSearch, setMunSearch] = useState('');
 
-  const [isPro, setIsPro] = useState(false); // Mock de assinatura
+  const [isPro, setIsPro] = useState(false);
+  const [isSubscribed, setIsSubscribed] = useState(false);
+  const [loadingSubscription, setLoadingSubscription] = useState(true);
   const [interests, setInterests] = useState<string[]>([]);
   const [newInterest, setNewInterest] = useState('');
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -63,6 +65,26 @@ export default function DashboardPage() {
       const { data: { session } } = await supabase.auth.getSession();
       if (session?.user) {
         setUser(session.user);
+
+        // Verifica se é email de admin (sempre liberado)
+        const adminEmails = (process.env.NEXT_PUBLIC_ADMIN_EMAILS || '').split(',').map(e => e.trim()).filter(Boolean);
+        const isAdmin = adminEmails.length > 0 && adminEmails.includes(session.user.email || '');
+
+        if (isAdmin) {
+          setIsSubscribed(true);
+          setIsPro(true);
+        } else {
+          // Verifica assinatura ativa no Supabase
+          const { data: sub } = await supabase
+            .from('subscriptions')
+            .select('id')
+            .eq('user_id', session.user.id)
+            .eq('status', 'active')
+            .gt('expires_at', new Date().toISOString())
+            .maybeSingle();
+          setIsSubscribed(!!sub);
+          setIsPro(!!sub);
+        }
         const { data: settings } = await supabase
           .from('user_settings')
           .select('*')
@@ -104,7 +126,11 @@ export default function DashboardPage() {
              link: s.link
           })));
         }
+      } else {
+        // Não logado → manda para login
+        router.push('/login');
       }
+      setLoadingSubscription(false);
     };
     fetchUserAndSettings();
   }, []);
@@ -279,6 +305,41 @@ export default function DashboardPage() {
 
   return (
     <div className="min-h-screen bg-[#060606] text-white flex transition-all duration-500">
+
+      {/* Paywall Overlay — exibe se logado mas sem assinatura */}
+      {!loadingSubscription && !isSubscribed && (
+        <div className="fixed inset-0 z-[9999] bg-black/70 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="relative w-full max-w-md">
+            <div className="absolute -inset-1 bg-gradient-to-r from-purple-600 to-blue-600 rounded-3xl blur-xl opacity-40" />
+            <div className="relative p-8 rounded-3xl border border-purple-500/40 bg-[#0e0e14] text-center">
+              <div className="w-16 h-16 rounded-2xl bg-purple-600/20 border border-purple-500/30 flex items-center justify-center mx-auto mb-5">
+                <Shield className="w-8 h-8 text-purple-400" />
+              </div>
+              <h2 className="text-2xl font-black mb-2">Acesso Restrito</h2>
+              <p className="text-gray-400 text-sm mb-6 leading-relaxed">
+                O dashboard é exclusivo para assinantes.<br />
+                Assine o plano mensal por <span className="text-white font-bold">R$30/mês</span> e monitore licitações de todo o Brasil.
+              </p>
+              <div className="flex items-baseline justify-center gap-2 mb-6">
+                <span className="text-5xl font-black">R$30</span>
+                <span className="text-gray-400">/mês</span>
+              </div>
+              <button
+                onClick={handleCheckout}
+                className="w-full py-4 rounded-2xl bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white font-bold transition-all shadow-xl shadow-purple-500/20 flex items-center justify-center gap-2"
+              >
+                Assinar com Mercado Pago
+              </button>
+              <button
+                onClick={handleLogout}
+                className="mt-3 w-full py-3 rounded-xl text-gray-500 hover:text-gray-300 text-sm transition-colors"
+              >
+                Sair da conta
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       {/* Sidebar */}
       <aside className="w-72 border-r border-white/5 bg-black/40 hidden lg:flex flex-col p-6 sticky top-0 h-screen">
         <div className="flex items-center gap-2 mb-10">
