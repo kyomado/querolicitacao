@@ -40,12 +40,12 @@ export async function GET(request: Request) {
 
         // Busca licitações com os filtros do usuário
         const results = await searchAllBiddings(
-          keywords.join(' '),
           ufs,
+          keywords.join(' '),
           [], // modalidades (todas)
           [], // municípios (todos)
+          undefined, // sem AbortController no cron
           days,
-          'date_desc',
         );
 
         if (results.length === 0) continue;
@@ -61,11 +61,11 @@ export async function GET(request: Request) {
           id: b.id,
           title: b.title,
           agency: b.agency || 'Órgão Público',
-          location: [b.municipality, b.uf].filter(Boolean).join(', ') || '—',
+          location: b.location || '—',
           modality: b.modality || '—',
-          value: b.estimatedValue,
+          value: b.value,
           endDate: b.endDate,
-          link: b.pncpUrl || b.externalUrl,
+          link: b.link,
           source: b.source || 'PNCP',
         }));
 
