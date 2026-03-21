@@ -60,6 +60,11 @@ export default function DashboardPage() {
   const [user, setUser] = useState<any>(null);
   const [isSaving, setIsSaving] = useState(false);
 
+  // Email alerts state
+  const [emailAlertsEnabled, setEmailAlertsEnabled] = useState(false);
+  const [alertEmail, setAlertEmail] = useState('');
+  const [alertFrequency, setAlertFrequency] = useState<'daily' | 'weekly'>('daily');
+
   useEffect(() => {
     const fetchUserAndSettings = async () => {
       const { data: { session } } = await supabase.auth.getSession();
@@ -105,6 +110,11 @@ export default function DashboardPage() {
           if (settings.default_days_range) {
             setDaysFilter(settings.default_days_range);
           }
+          if (typeof settings.email_alerts_enabled === 'boolean') {
+            setEmailAlertsEnabled(settings.email_alerts_enabled);
+          }
+          if (settings.alert_email) setAlertEmail(settings.alert_email);
+          if (settings.alert_frequency) setAlertFrequency(settings.alert_frequency);
         }
         
         const { data: saved } = await supabase.from('saved_biddings').select('*').eq('user_id', session.user.id);
@@ -185,6 +195,12 @@ export default function DashboardPage() {
         default_ufs: ufs,
         default_modalities: modalities,
         default_days_range: daysFilter,
+        email_alerts_enabled: emailAlertsEnabled,
+        alert_email: alertEmail || user.email,
+        alert_frequency: alertFrequency,
+        interests: interests,
+        uf_preferences: ufs,
+        days_range: daysFilter,
         updated_at: new Date().toISOString()
       }, { onConflict: 'user_id' });
       
