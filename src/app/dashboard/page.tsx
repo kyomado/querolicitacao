@@ -201,9 +201,6 @@ export default function DashboardPage() {
         alert_email: alertEmail || user.email,
         alert_frequency: alertFrequency,
         alert_hour: alertHour,
-        interests: interests,
-        uf_preferences: ufs,
-        days_range: daysFilter,
         updated_at: new Date().toISOString()
       }, { onConflict: 'user_id' });
       

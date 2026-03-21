@@ -17,11 +17,18 @@ export async function GET(request: Request) {
   }
 
   try {
-    // Busca todos os usuários com alertas ativos
+    // Hora atual em Brasília (UTC-3)
+    const nowUTC = new Date();
+    const brasiliaOffset = -3 * 60; // UTC-3 em minutos
+    const nowBrasilia = new Date(nowUTC.getTime() + brasiliaOffset * 60 * 1000);
+    const currentHour = nowBrasilia.getUTCHours(); // Hora atual em Brasília
+
+    // Busca apenas usuários cujo horário de alerta bate com a hora atual
     const { data: settings, error } = await supabaseAdmin
       .from('user_settings')
-      .select('user_id, alert_email, interests, uf_preferences, days_range')
+      .select('user_id, alert_email, default_keywords, default_ufs, default_days_range, alert_hour')
       .eq('email_alerts_enabled', true)
+      .eq('alert_hour', currentHour)
       .not('alert_email', 'is', null);
 
     if (error) throw error;
@@ -34,11 +41,12 @@ export async function GET(request: Request) {
 
     for (const s of settings) {
       try {
-        const keywords: string[] = s.interests || [];
-        const ufs: string[] = s.uf_preferences || [];
-        const days: number = s.days_range || 30;
+        const keywords: string[] = s.default_keywords ? s.default_keywords.split(',').filter(Boolean) : [];
+        const ufs: string[] = s.default_ufs || [];
+        // Janela de 24h: sempre busca do dia anterior até hoje
+        const days: number = 1;
 
-        // Busca licitações com os filtros do usuário
+        // Busca licitações com os filtros do usuário (últimas 24h)
         const results = await searchAllBiddings(
           ufs,
           keywords.join(' '),
