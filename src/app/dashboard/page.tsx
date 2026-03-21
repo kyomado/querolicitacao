@@ -64,6 +64,7 @@ export default function DashboardPage() {
   const [emailAlertsEnabled, setEmailAlertsEnabled] = useState(false);
   const [alertEmail, setAlertEmail] = useState('');
   const [alertFrequency, setAlertFrequency] = useState<'daily' | 'weekly'>('daily');
+  const [alertHour, setAlertHour] = useState<number>(8); // 0-23 horário de Brasília
 
   useEffect(() => {
     const fetchUserAndSettings = async () => {
@@ -115,6 +116,7 @@ export default function DashboardPage() {
           }
           if (settings.alert_email) setAlertEmail(settings.alert_email);
           if (settings.alert_frequency) setAlertFrequency(settings.alert_frequency);
+          if (typeof settings.alert_hour === 'number') setAlertHour(settings.alert_hour);
         }
         
         const { data: saved } = await supabase.from('saved_biddings').select('*').eq('user_id', session.user.id);
@@ -198,6 +200,7 @@ export default function DashboardPage() {
         email_alerts_enabled: emailAlertsEnabled,
         alert_email: alertEmail || user.email,
         alert_frequency: alertFrequency,
+        alert_hour: alertHour,
         interests: interests,
         uf_preferences: ufs,
         days_range: daysFilter,
@@ -511,6 +514,80 @@ export default function DashboardPage() {
                         </button>
                       </div>
                     </div>
+                  </div>
+                  
+                  <div className="border-t border-white/5 pt-8">
+                    <h3 className="text-white font-bold mb-1 flex items-center gap-2">
+                      <Bell className="w-4 h-4 text-purple-500" />
+                      Alertas por E-mail
+                      <span className="text-[9px] px-2 py-0.5 bg-purple-600/30 border border-purple-500/30 rounded-full text-purple-300 font-bold uppercase tracking-wider ml-1">Premium</span>
+                    </h3>
+                    <p className="text-[11px] text-gray-400 mb-5">Receba no seu e-mail as licitações que combinam com suas palavras-chave e estados salvos.</p>
+
+                    <div className="flex items-center gap-4 mb-5">
+                      <button
+                        onClick={() => setEmailAlertsEnabled(!emailAlertsEnabled)}
+                        className={`relative w-12 h-6 rounded-full transition-all duration-300 border ${
+                          emailAlertsEnabled ? 'bg-purple-600 border-purple-500' : 'bg-black/60 border-white/10'
+                        }`}
+                      >
+                        <span className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow-md transition-all duration-300 ${
+                          emailAlertsEnabled ? 'left-6' : 'left-0.5'
+                        }`} />
+                      </button>
+                      <span className={`text-sm font-bold transition-colors ${emailAlertsEnabled ? 'text-purple-400' : 'text-gray-500'}`}>
+                        {emailAlertsEnabled ? 'Alertas Ativados' : 'Alertas Desativados'}
+                      </span>
+                    </div>
+
+                    {emailAlertsEnabled && (
+                      <div className="space-y-4">
+                        <div>
+                          <label className="text-[11px] text-gray-400 font-bold uppercase tracking-wider block mb-2">E-mail de destino</label>
+                          <input
+                            type="email"
+                            value={alertEmail || user?.email || ''}
+                            onChange={(e) => setAlertEmail(e.target.value)}
+                            placeholder={user?.email || 'seu@email.com'}
+                            className="w-full md:w-1/2 bg-black/40 border border-white/10 rounded-xl py-3 px-4 text-sm focus:outline-none focus:border-purple-500/50 transition-all text-white"
+                          />
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full md:w-1/2">
+                          <div>
+                            <label className="text-[11px] text-gray-400 font-bold uppercase tracking-wider block mb-2">Frequência</label>
+                            <div className="flex gap-3">
+                              {(['daily', 'weekly'] as const).map(f => (
+                                <button
+                                  key={f}
+                                  onClick={() => setAlertFrequency(f)}
+                                  className={`flex-1 py-2.5 rounded-xl text-[11px] uppercase font-bold border transition-all ${
+                                    alertFrequency === f ? 'bg-purple-600 border-purple-500 text-white' : 'bg-black/40 border-white/10 text-gray-400 hover:bg-white/5'
+                                  }`}
+                                >
+                                  {f === 'daily' ? '📅 Diário' : '📆 Semanal'}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                          <div>
+                            <label className="text-[11px] text-gray-400 font-bold uppercase tracking-wider block mb-2">Horário (Brasília)</label>
+                            <select
+                              value={alertHour}
+                              onChange={(e) => setAlertHour(Number(e.target.value))}
+                              className="w-full bg-black/40 border border-white/10 rounded-xl py-2.5 px-4 text-sm focus:outline-none focus:border-purple-500/50 transition-all text-white appearance-none"
+                              style={{ height: '38px' }}
+                            >
+                              {Array.from({ length: 24 }).map((_, i) => (
+                                <option key={i} value={i} className="bg-gray-900 text-white">
+                                  {i.toString().padStart(2, '0')}:00
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                        </div>
+                        <p className="text-[10px] text-gray-500 italic mt-2">Os alertas buscarão as licitações publicadas nas últimas 24 horas até o horário agendado.</p>
+                      </div>
+                    )}
                   </div>
                   
                   <div className="border-t border-white/5 pt-8 flex justify-end">
