@@ -77,35 +77,51 @@ export async function fetchPNCPBiddings(ufs: string[] = [], keywords: string = '
       if (signal?.aborted) throw new Error('AbortError');
       const batch = pairs.slice(i, i + 4);
       const requests = batch.map(async ({ uf, mod }) => {
-        const ufParam = `&uf=${uf}`;
-        const targetUrl = `${PNCP_BASE_URL}/contratacoes/publicacao?dataInicial=${dateStart}&dataFinal=${dateEnd}${ufParam}&codigoModalidadeContratacao=${mod}&pagina=1&tamanhoPagina=50`;
-        const proxyUrl = `/api/proxy?url=${encodeURIComponent(targetUrl)}`;
+        let pairItems: any[] = [];
         
-        const localController = new AbortController();
-        const timeoutId = setTimeout(() => localController.abort(), 12000); // 12s máximo por requisição
-
-        const onParentAbort = () => localController.abort();
-        if (signal) {
-          signal.addEventListener('abort', onParentAbort);
-          if (signal.aborted) localController.abort();
-        }
-
-        try {
-          const response = await fetch(proxyUrl, { signal: localController.signal });
-          if (response.ok) {
-            const text = await response.text();
-            if (text) {
-              const data = JSON.parse(text);
-              return data.data || data.items || [];
-            }
-          }
-        } catch (err: any) {
+        // Puxa até 4 páginas (200 itens) para cada combinação (UF/Modalidade) para buscar palavras mais a fundo
+        for (let pagina = 1; pagina <= 4; pagina++) {
           if (signal?.aborted) throw new Error('AbortError');
-        } finally {
-          clearTimeout(timeoutId);
-          if (signal) signal.removeEventListener('abort', onParentAbort);
+          
+          const ufParam = `&uf=${uf}`;
+          const targetUrl = `${PNCP_BASE_URL}/contratacoes/publicacao?dataInicial=${dateStart}&dataFinal=${dateEnd}${ufParam}&codigoModalidadeContratacao=${mod}&pagina=${pagina}&tamanhoPagina=50`;
+          const proxyUrl = `/api/proxy?url=${encodeURIComponent(targetUrl)}`;
+          
+          const localController = new AbortController();
+          const timeoutId = setTimeout(() => localController.abort(), 12000); // 12s máximo por requisição
+
+          const onParentAbort = () => localController.abort();
+          if (signal) {
+            signal.addEventListener('abort', onParentAbort);
+            if (signal.aborted) localController.abort();
+          }
+
+          try {
+            const response = await fetch(proxyUrl, { signal: localController.signal });
+            if (response.ok) {
+              const text = await response.text();
+              if (text) {
+                const data = JSON.parse(text);
+                const items = data.data || data.items || [];
+                pairItems.push(...items);
+                
+                // Se retornou menos de 50, é a última página
+                if (items.length < 50) break;
+              } else {
+                break;
+              }
+            } else {
+              break;
+            }
+          } catch (err: any) {
+            if (signal?.aborted) throw new Error('AbortError');
+            break; // Em caso de erro de conexão, para de tentar puxar mais páginas desse par
+          } finally {
+            clearTimeout(timeoutId);
+            if (signal) signal.removeEventListener('abort', onParentAbort);
+          }
         }
-        return [];
+        return pairItems;
       });
 
       const results = await Promise.all(requests);
