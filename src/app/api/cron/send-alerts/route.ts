@@ -23,13 +23,21 @@ export async function GET(request: Request) {
     const nowBrasilia = new Date(nowUTC.getTime() + brasiliaOffset * 60 * 1000);
     const currentHour = nowBrasilia.getUTCHours(); // Hora atual em Brasília
 
-    // Busca apenas usuários cujo horário de alerta bate com a hora atual
-    const { data: settings, error } = await supabaseAdmin
+    const { searchParams } = new URL(request.url);
+    const force = searchParams.get('force') === 'true';
+
+    // Busca apenas usuários cujo horário de alerta bate com a hora atual (ou todos se force=true)
+    let query = supabaseAdmin
       .from('user_settings')
       .select('user_id, alert_email, default_keywords, default_ufs, default_days_range, alert_hour')
       .eq('email_alerts_enabled', true)
-      .eq('alert_hour', currentHour)
       .not('alert_email', 'is', null);
+
+    if (!force) {
+      query = query.eq('alert_hour', currentHour);
+    }
+
+    const { data: settings, error } = await query;
 
     if (error) throw error;
     if (!settings || settings.length === 0) {
