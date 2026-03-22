@@ -57,7 +57,7 @@ export async function GET(request: Request) {
         // Busca licitações com os filtros do usuário (últimas 24h)
         const results = await searchAllBiddings(
           ufs,
-          keywords.join(' '),
+          keywords.join(','),
           [], // modalidades (todas)
           [], // municípios (todos)
           undefined, // sem AbortController no cron
