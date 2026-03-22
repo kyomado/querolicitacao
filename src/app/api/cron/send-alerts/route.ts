@@ -51,10 +51,10 @@ export async function GET(request: Request) {
       try {
         const keywords: string[] = s.default_keywords ? s.default_keywords.split(',').filter(Boolean) : [];
         const ufs: string[] = s.default_ufs || [];
-        // Janela de 24h: sempre busca do dia anterior até hoje
-        const days: number = 1;
+        // Janela de 24h: sempre busca do dia anterior até hoje, MAS para force=true testamos 30 dias pra evitar fins de semana vazios
+        const days: number = force ? 30 : 1;
 
-        // Busca licitações com os filtros do usuário (últimas 24h)
+        // Busca licitações com os filtros do usuário (últimas 24h ou 30 dias se teste)
         const results = await searchAllBiddings(
           ufs,
           keywords.join(','),
